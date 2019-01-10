@@ -181,16 +181,16 @@ void SetupRC()
         //y点坐标 sin(angle) * 半径
         vPoints[nVerts][1] =  float(sin(angle)) * r;
         //z点的坐标
-        vPoints[nVerts][2] =  0.5f;
+        vPoints[nVerts][2] =  -0.5f;
     }
     
     // 结束扇形 前面一共绘制7个顶点（包括圆心）
-    printf("三角形h扇形顶点数: %d\n", nVerts);
+    printf("三角形扇形顶点数: %d\n", nVerts);
     //添加闭合的终点
     //添加演示：屏蔽177-180行代码，并把绘制节点改为7.则三角形扇形是无法闭合的。
     nVerts++;
     vPoints[nVerts][0] = r;
-    vPoints[nVerts][1] = 0.0f;
+    vPoints[nVerts][1] = 0;
     vPoints[nVerts][2] = 0.0f;
     
     // 加载！
@@ -205,7 +205,7 @@ void SetupRC()
     //半径
     GLfloat radius = 3.0f;
     //从0度~360度，以0.3弧度为步长
-    for (GLfloat angle = 0.0f; angle <= (2.0f*M3D_PI); angle += .3f) {
+    for (GLfloat angle = 0.0f; angle <= (2.0f*M3D_PI); angle += 0.3f) {
         //获取圆形顶点的x,y
         GLfloat x = radius * sin(angle);
         GLfloat y = radius * cos(angle);
@@ -217,7 +217,7 @@ void SetupRC()
         iCounter++;
         
         vPoints[iCounter][0] = x;
-        vPoints[iCounter][1] = x;
+        vPoints[iCounter][1] = y;
         vPoints[iCounter][2] = 0.5f;
         iCounter++;
     }
@@ -232,7 +232,7 @@ void SetupRC()
     
     vPoints[iCounter][0] = vPoints[1][0];
     vPoints[iCounter][1] = vPoints[1][1];
-    vPoints[iCounter][2] = -0.5f;
+    vPoints[iCounter][2] = 0.5f;
     iCounter++;
     
     // GL_TRIANGLE_STRIP 共用一个条带（strip）上的顶点的一组三角形
@@ -252,7 +252,7 @@ void DrawWireFramedBatch(GLBatch* pBatch)
      --transformPipeline 变换管线（指定了2个矩阵堆栈）
      参数3：颜色值
      */
-    shaderManager.UseStockShader(GLT_SHADER_FLAT, transformPipeline.GetModelViewMatrix(), vGreen);
+    shaderManager.UseStockShader(GLT_SHADER_FLAT, transformPipeline.GetModelViewProjectionMatrix(), vGreen);
     pBatch->Draw();
     
     /*-----------边框部分-------------------*/
