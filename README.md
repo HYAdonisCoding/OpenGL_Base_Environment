@@ -5,5 +5,5 @@ The Base Environment of OpenGL.
 网络管线
 
 # 效果图
-##### 公转自转
-![公转自转](https://github.com/HYAdonisCoding/OpenGL_Base_Environment/blob/SphereWorld/Images/公转自转.gif)
+##### 正交投影
+![公转自转](https://github.com/HYAdonisCoding/OpenGL_Base_Environment/blob/正交投影/Images/Orthographic%20Projection%20正交投影.png)
