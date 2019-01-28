@@ -5,6 +5,7 @@
 #include "GLFrustum.h"
 #include "GLBatch.h"
 #include "GLGeometryTransform.h"
+#include "StopWatch.h"
 
 #include <math.h>
 #ifdef __APPLE__
@@ -28,44 +29,14 @@
  */
 // 各种需要的类
 GLShaderManager		shaderManager;
-/** 模型视图矩阵堆栈 */
-GLMatrixStack		modelViewMatrix;
-/** 投影视图矩阵堆栈 */
-GLMatrixStack		projectionMatrix;
-/** 观察者位置 */
-GLFrame				cameraFrame;
-/** 世界坐标位置 */
-GLFrame             objectFrame;
-//投影矩阵
-GLFrustum			viewFrustum;
+/** 视景体-投影矩阵通过它来设置 */
+GLFrustum		    viewFrustum;
 
 /** 三角形批次类 */
-GLTriangleBatch     CC_Triangle;
-
-//容器类（7种不同的图元对应7种容器对象）
-/** 球 */
-GLTriangleBatch     sphereBatch;
-/** 环 */
 GLTriangleBatch     torusBatch;
-/** 圆柱 */
-GLTriangleBatch     cylinderBatch;
-/** 锥 */
-GLTriangleBatch     coneBatch;
-/** 磁盘 */
-GLTriangleBatch     diskBatch;
-
-
-/** 几何变换的管道，用来管理投影视图矩阵堆栈和模型视图矩阵堆栈的 */
-GLGeometryTransform	transformPipeline;
-M3DMatrix44f		shadowMatrix;
-
 
 GLfloat vGreen[] = { 0.0f, 1.0f, 0.0f, 1.0f };
 GLfloat vBlack[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-
-
-/** 跟踪效果步骤 */
-int nStep = 0;
 
 
 
@@ -75,59 +46,13 @@ void SetupRC()
 {
     glClearColor(0.7f, 0.7f, 0.7f, 1.0f);
     
-    shaderManager.InitializeStockShaders();
-    
-    //开启深度测试
     glEnable(GL_DEPTH_TEST);
     
-    transformPipeline.SetMatrixStacks(modelViewMatrix, projectionMatrix);
+    shaderManager.InitializeStockShaders();
     
-    //将观察者的坐标Z值放屏幕里移动15个单位
-    cameraFrame.MoveForward(-15.0f);
+    gltMakeSphere(torusBatch, .4f, 10, 20);
     
-    //球
-    /**
-        gltMakeSphere(GLTriangleBatch &sphereBatch, GLfloat fRadius, GLint iSlices, GLint iStacks)
-        参数一:三角形批次类对象
-        参数二:球体半径
-         参数三:从球体底部到顶部的三角形带的数量,其实球体是一圈一圈的三角形带组成的.
-         参数四:围绕球体一圈的三角形对数
-     */
-    gltMakeSphere(sphereBatch, 3.0f, 10, 20);
-    
-    //甜甜圈🍩
-    /** gltMakeTorus(GLTriangleBatch& torusBatch, GLfloat majorRadius, GLfloat minorRadius, GLint numMajor, GLint numMinor)
-     参数一:三角形批次类
-     参数二:甜甜圈中心到外圈的半径
-     参数三:甜甜圈中心到内圈的半径
-     参数四:沿着主半径的三角形的对数
-     参数五:颜色内部较小半径的三角形对数.!!!尽量!!!numMajor = 2*numMinor
-        */
-    gltMakeTorus(torusBatch, 3.0f, 0.75f, 24, 12);
-    
-    //圆柱
-    /** gltMakeCylinder(GLTriangleBatch &cylinderBatch, GLfloat baseRadius, GLfloat topRadius, GLfloat fLength, GLint numSlices, GLint numStacks)
-     参数一:三角形批次类
-     参数二:底部半径
-     参数三:顶部半径
-     参数四:圆柱的长度
-     参数五:三角形对的数量
-     参数六:底部堆叠到顶部圆弧的三角形对数
-     */
-    gltMakeCylinder(cylinderBatch, 2.0f, 2.0f, 3.0f, 15.0f, 2);
-    
-    //圆锥
-    gltMakeCylinder(coneBatch, 2.0f, 0.0f, 3.0f, 13.0f, 2);
-    
-    //磁盘
-    /** gltMakeDisk(GLTriangleBatch &diskBatch, GLfloat innerRadius, GLfloat outerRadius, GLint nSlices, GLint nStacks)
-     参数一:三角形批次类
-     参数二:内圆半径
-     参数三:外圆半径
-     参数四:圆围绕Z轴的三角形对数
-     参数五:Y圆盘外圈到内圈的三角形对数
-     */
-    gltMakeDisk(diskBatch, 1.5f, 3.0f, 13, 3);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     
 }
 
@@ -135,32 +60,7 @@ void SetupRC()
 
 void DrawWireFramedBatch(GLTriangleBatch* pBatch)
 {
-    //1.平面主色去绘制图
-    shaderManager.UseStockShader(GLT_SHADER_FLAT, transformPipeline.GetModelViewProjectionMatrix(), vGreen);
-    pBatch->Draw();
     
-    //2.黑色轮廓
-    glPolygonOffset(-1.0f, -1.0f);
-    
-    //3.开启混合抗锯齿
-    glEnable(GL_LINE_SMOOTH);
-    
-    //4.开启混合
-    glEnable(GL_BLEND);
-    
-    //5.颜色混合
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    
-    //6.
-    glEnable(GL_POLYGON_OFFSET_LINE);
-    
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    
-    glLineWidth(2.5f);
-    
-    //使用平面着色器绘制黑色边框线条
-    shaderManager.UseStockShader(GLT_SHADER_FLAT, transformPipeline.GetModelViewProjectionMatrix(), vBlack);
-    pBatch->Draw();
     
     //恢复设置
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -178,68 +78,45 @@ void RenderScene(void)
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
-    //模型视图压栈
-    modelViewMatrix.PushMatrix();
+    //建立一个基于世界变化的动画
+    static CStopWatch rotTimer;
     
-    //获取观察者矩阵
-    M3DMatrix44f mCamera;
-    cameraFrame.GetCameraMatrix(mCamera);
+    //当前时间 * 60s
+    float yRot = rotTimer.GetElapsedSeconds() * 60.0f;
     
-    //模式视图堆栈的顶部矩阵 与 mCamera 矩阵相乘,存储到modelViewMatrix
-    modelViewMatrix.MultMatrix(mCamera);
+    //矩阵变量
+    M3DMatrix44f mTranlate, mRotate, mModelView, mMdoelViewProjection;
     
-    //
-    M3DMatrix44f mObjectFrame;
-    objectFrame.GetMatrix(mObjectFrame);
-    modelViewMatrix.MultMatrix(objectFrame);
+    //将圆球向Z周副方向移动2.5个单位长度
+    m3dTranslationMatrix44(mTranlate, .0f, .0f, -2.5f);
     
-    //判断
-    switch (nStep) {
-        case 0:
-            DrawWireFramedBatch(&sphereBatch);
-            break;
-        case 1:
-            DrawWireFramedBatch(&torusBatch);
-            break;
-        case 2:
-            DrawWireFramedBatch(&cylinderBatch);
-            break;
-        case 3:
-            DrawWireFramedBatch(&coneBatch);
-            break;
-        case 4:
-            DrawWireFramedBatch(&diskBatch);
-            break;
-        default:
-            break;
-    }
+    //旋转
+    m3dRotationMatrix44(mRotate, m3dDegToRad(yRot), .0f, 1.0f, .0f);
     
-    modelViewMatrix.PopMatrix();
+    //将平移和旋转矩阵进行叉乘,产生一个新的矩阵
+    m3dMatrixMultiply44(mModelView, mTranlate, mRotate);
+    
+    //模型视图矩阵 和 投影矩阵
+    //将投影矩阵 与 模型视图矩阵进行叉乘 ,将变化最终结果通过矩阵叉乘的方式应用到mModelViewProjection中来
+    m3dMatrixMultiply44(mMdoelViewProjection, viewFrustum.GetProjectionMatrix(), mModelView);
+    
+    GLfloat vBlack[] = {.0f, .0f, .0f, 1.0f};
+    
+    //平面着色器来渲染图像
+    shaderManager.UseStockShader(GLT_SHADER_FLAT, mMdoelViewProjection, vBlack);
+    
+    //开始绘图
+    torusBatch.Draw();
+    
+    
     glutSwapBuffers();
-
+    glutPostRedisplay();
 }
 
 
 //特殊键位处理（上、下、左、右移动）
 void SpecialKeys(int key, int x, int y)
 {
-    if (key == GLUT_KEY_UP) {
-        //移动世界坐标系,而不是移动物体
-        //将坐标系在X方向移动-5.0
-        objectFrame.RotateWorld(m3dDegToRad(-5.0f), 1.0f, .0f, .0f);
-    }
-
-    if (key == GLUT_KEY_DOWN) {
-        objectFrame.RotateWorld(m3dDegToRad(5.0f), 1.0f, .0f, .0f);
-    }
-    
-    if (key == GLUT_KEY_LEFT) {
-        objectFrame.RotateWorld(m3dDegToRad(-5.0f), .0f, 1.0f, .0f);
-    }
-
-    if (key == GLUT_KEY_RIGHT) {
-        objectFrame.RotateWorld(m3dDegToRad(5.0f), .0f, 1.0f, .0f);
-    }
     
     glutPostRedisplay();
 
@@ -253,35 +130,7 @@ void SpecialKeys(int key, int x, int y)
 //x,y: 光标的位置
 void KeyPressFunc(unsigned char key, int x, int y)
 {
-    //key == 32 32的ASC2码，是空格。比如A：65; B = 66
-    if(key == 32)
-    {
-        nStep++;
-        
-        if(nStep > 4)
-            nStep = 0;
-    }
-    
-    switch(nStep)
-    {
-        case 0:
-            glutSetWindowTitle("Sphere 球");
-            break;
-        case 1:
-            glutSetWindowTitle("Torus 环");
-            break;
-        case 2:
-            glutSetWindowTitle("Cylinder 圆柱");
-            break;
-        case 3:
-            glutSetWindowTitle("Cone 圆锥");
-            break;
-        case 4:
-            glutSetWindowTitle("Disk 光盘");
-            break;
-    }
-    
-    glutPostRedisplay();
+   
 }
 
 //鼠标点击事件
@@ -300,15 +149,9 @@ void ChangeSize(int w, int h)
     
     glViewport(0, 0, w, h);
     
-    //o透视投影
-    viewFrustum.SetPerspective(35.0f, float(w)/float(h), 1.0f, 500.0f);
+    //透视投影
+    viewFrustum.SetPerspective(35.0f, float(w)/float(h), 1.0f, 1000.0f);
     
-    projectionMatrix.LoadMatrix(viewFrustum.GetProjectionMatrix());
-    
-    //对模型视图加载一个单元矩阵
-    modelViewMatrix.LoadIdentity();
-    
-
 }
 
 
