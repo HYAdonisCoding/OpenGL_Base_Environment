@@ -7,8 +7,6 @@
 #include "StopWatch.h"
 
 #include <math.h>
-#include <stdio.h>
-
 #ifdef __APPLE__
 #include <glut/glut.h>
 #else
@@ -16,57 +14,431 @@
 #include <GL/glut.h>
 #endif
 
+/** 投影矩阵 */
+GLFrame            viewFrame;
+/** 视景体-投影矩阵通过它来设置 */
+GLFrustum            viewFrustum;
+/** 批次类 */
+GLBatch             tubeBatch;
+/** 内侧批次类 */
+GLBatch             innerBatch;
 /** 着色器管理器 */
-GLShaderManager		shaderManager;
+GLShaderManager        shaderManager;
 /** 模型视图矩阵 */
 GLMatrixStack       modelViewMatrix;
 /** 投影矩阵 */
 GLMatrixStack       projectionMatrix;
-/** 视景体-投影矩阵通过它来设置 */
-GLFrustum		    viewFrustum;
 /** 几何视图变换管道 */
 GLGeometryTransform transformPipelint;
-
-/** 三角形批次类 */
-GLTriangleBatch     torusBatch;
-/** 底板批次类 */
-GLBatch             floorBatch;
-/** 球批次类 */
-GLTriangleBatch     sphereBatch;
-/** 角色帧 照相机角色帧 */
-GLFrame             cameraFrame;
-
 
 // 此函数在呈现上下文中进行任何必要的初始化。.
 // 这是第一次做任何与opengl相关的任务。
 void SetupRC()
 {
+    glClearColor(0.0f, 0.0f, 0.75f, 1.0f);
+    
     shaderManager.InitializeStockShaders();
 
-    glEnable(GL_DEPTH_TEST);
+    //指定绘图的方式
+    tubeBatch.Begin(GL_QUADS, 200);
     
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    float fZ = 100.0f;
+    float bZ = -100.0f;
     
-    //绘制甜甜圈
-    gltMakeTorus(torusBatch, .4f, .15f, 30, 30);
+    //左面板的颜色\顶点\光照
+    //颜色值
+    tubeBatch.Color4f(1.0f, .0f, .0f, 1.0f);
     
-    //绘制球体
-    gltMakeSphere(sphereBatch, .1f, 26, 13);
+    //关照线法
+    //接收3f个坐标的值,指定一条z垂直于三角形表面的法线向量
+    tubeBatch.Normal3f(.0f, .0f, 1.0f);
     
-    //绘制底板
-    floorBatch.Begin(GL_LINES, 324);
-    //底板多的宽度
-    for (GLfloat x = -20.0f; x <= 20.0f; x += 0.5f) {
-        floorBatch.Vertex3f(x, -0.55f, 20.0f);
-        floorBatch.Vertex3f(x, -0.55f, -20.0f);
-        
-        floorBatch.Vertex3f(20.0f, -0.55f, x);
-        floorBatch.Vertex3f(-20.0f, -0.55f, x);
-    }
+    //顶点数据
+    tubeBatch.Vertex3f(-50.0f, 50.0f, 100.0f);
     
-    floorBatch.End();
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(-50.0f, -50.0f, fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(-35.0f, -50.0f, fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(-35.0f,50.0f,fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(50.0f, 50.0f, fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(35.0f, 50.0f, fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(35.0f, -50.0f, fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(50.0f,-50.0f,fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(-35.0f, 50.0f, fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(-35.0f, 35.0f, fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(35.0f, 35.0f, fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(35.0f, 50.0f,fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(-35.0f, -35.0f, fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(-35.0f, -50.0f, fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(35.0f, -50.0f, fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(35.0f, -35.0f,fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, 1.0f, 0.0f);
+    tubeBatch.Vertex3f(-50.0f, 50.0f, fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, 1.0f, 0.0f);
+    tubeBatch.Vertex3f(50.0f, 50.0f, fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, 1.0f, 0.0f);
+    tubeBatch.Vertex3f(50.0f, 50.0f, bZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, 1.0f, 0.0f);
+    tubeBatch.Vertex3f(-50.0f,50.0f,bZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, -1.0f, 0.0f);
+    tubeBatch.Vertex3f(-50.0f, -50.0f, fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, -1.0f, 0.0f);
+    tubeBatch.Vertex3f(-50.0f, -50.0f, bZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, -1.0f, 0.0f);
+    tubeBatch.Vertex3f(50.0f, -50.0f, bZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, -1.0f, 0.0f);
+    tubeBatch.Vertex3f(50.0f, -50.0f, fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(1.0f, 0.0f, 0.0f);
+    tubeBatch.Vertex3f(50.0f, 50.0f, fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(1.0f, 0.0f, 0.0f);
+    tubeBatch.Vertex3f(50.0f, -50.0f, fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(1.0f, 0.0f, 0.0f);
+    tubeBatch.Vertex3f(50.0f, -50.0f, bZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(1.0f, 0.0f, 0.0f);
+    tubeBatch.Vertex3f(50.0f, 50.0f, bZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(-1.0f, 0.0f, 0.0f);
+    tubeBatch.Vertex3f(-50.0f, 50.0f, fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(-1.0f, 0.0f, 0.0f);
+    tubeBatch.Vertex3f(-50.0f, 50.0f, bZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(-1.0f, 0.0f, 0.0f);
+    tubeBatch.Vertex3f(-50.0f, -50.0f, bZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(-1.0f, 0.0f, 0.0f);
+    tubeBatch.Vertex3f(-50.0f, -50.0f, fZ);
+    
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(-50.0f, 50.0f, fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(-50.0f, -50.0f, fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(-35.0f, -50.0f, fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(-35.0f,50.0f,fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(50.0f, 50.0f, fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(35.0f, 50.0f, fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(35.0f, -50.0f, fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(50.0f,-50.0f,fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(-35.0f, 50.0f, fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(-35.0f, 35.0f, fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(35.0f, 35.0f, fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(35.0f, 50.0f,fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(-35.0f, -35.0f, fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(-35.0f, -50.0f, fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(35.0f, -50.0f, fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(35.0f, -35.0f,fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, 1.0f, 0.0f);
+    tubeBatch.Vertex3f(-50.0f, 50.0f, fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, 1.0f, 0.0f);
+    tubeBatch.Vertex3f(50.0f, 50.0f, fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, 1.0f, 0.0f);
+    tubeBatch.Vertex3f(50.0f, 50.0f, bZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, 1.0f, 0.0f);
+    tubeBatch.Vertex3f(-50.0f,50.0f,bZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, -1.0f, 0.0f);
+    tubeBatch.Vertex3f(-50.0f, -50.0f, fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, -1.0f, 0.0f);
+    tubeBatch.Vertex3f(-50.0f, -50.0f, bZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, -1.0f, 0.0f);
+    tubeBatch.Vertex3f(50.0f, -50.0f, bZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(0.0f, -1.0f, 0.0f);
+    tubeBatch.Vertex3f(50.0f, -50.0f, fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(1.0f, 0.0f, 0.0f);
+    tubeBatch.Vertex3f(50.0f, 50.0f, fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(1.0f, 0.0f, 0.0f);
+    tubeBatch.Vertex3f(50.0f, -50.0f, fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(1.0f, 0.0f, 0.0f);
+    tubeBatch.Vertex3f(50.0f, -50.0f, bZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(1.0f, 0.0f, 0.0f);
+    tubeBatch.Vertex3f(50.0f, 50.0f, bZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(-1.0f, 0.0f, 0.0f);
+    tubeBatch.Vertex3f(-50.0f, 50.0f, fZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(-1.0f, 0.0f, 0.0f);
+    tubeBatch.Vertex3f(-50.0f, 50.0f, bZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(-1.0f, 0.0f, 0.0f);
+    tubeBatch.Vertex3f(-50.0f, -50.0f, bZ);
+    
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Normal3f(-1.0f, 0.0f, 0.0f);
+    tubeBatch.Vertex3f(-50.0f, -50.0f, fZ);
+    
+    tubeBatch.Normal3f(0.0f, 0.0f, -1.0f);
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(-35.0f,50.0f,bZ);
+    
+    tubeBatch.Normal3f(0.0f, 0.0f, -1.0f);
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(-35.0f, -50.0f, bZ);
+    
+    tubeBatch.Normal3f(0.0f, 0.0f, -1.0f);
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(-50.0f, -50.0f, bZ);
+    
+    tubeBatch.Normal3f(0.0f, 0.0f, -1.0f);
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(-50.0f, 50.0f, bZ);
+    
+    
+    tubeBatch.Normal3f(0.0f, 0.0f, -1.0f);
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    
+    tubeBatch.Vertex3f(50.0f,-50.0f,bZ);
+    
+    tubeBatch.Normal3f(0.0f, 0.0f, -1.0f);
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    
+    tubeBatch.Vertex3f(35.0f, -50.0f, bZ);
+    
+    tubeBatch.Normal3f(0.0f, 0.0f, -1.0f);
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    
+    tubeBatch.Vertex3f(35.0f, 50.0f, bZ);
+    
+    tubeBatch.Normal3f(0.0f, 0.0f, -1.0f);
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    
+    tubeBatch.Vertex3f(50.0f, 50.0f, bZ);
+    
+    tubeBatch.Normal3f(0.0f, 0.0f, -1.0f);
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(35.0f, 50.0f, bZ);
+    tubeBatch.Normal3f(0.0f, 0.0f, -1.0f);
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(35.0f, 35.0f, bZ);
+    tubeBatch.Normal3f(0.0f, 0.0f, -1.0f);
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(-35.0f, 35.0f, bZ);
+    
+    
+    tubeBatch.Normal3f(0.0f, 0.0f, -1.0f);
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(-35.0f, 50.0f, bZ);
+    
+    
+    tubeBatch.Normal3f(0.0f, 0.0f, -1.0f);
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(35.0f, -35.0f,bZ);
+    tubeBatch.Normal3f(0.0f, 0.0f, -1.0f);
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(35.0f, -50.0f, bZ);
+    tubeBatch.Normal3f(0.0f, 0.0f, -1.0f);
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(-35.0f, -50.0f, bZ);
+    
+    
+    tubeBatch.Normal3f(0.0f, 0.0f, -1.0f);
+    tubeBatch.Color4f(1.0f, 0.0f, 0.0f, 1.0f);
+    tubeBatch.Vertex3f(-35.0f, -35.0f, bZ);
+    
+    tubeBatch.End();
+    
+    //内壁
+    innerBatch.Begin(GL_QUADS, 40);
+    
+    innerBatch.Color4f(0.75f, 0.75f, 0.75f, 1.0f);
+    innerBatch.Normal3f(0.0f, 1.0f, 0.0f);
+    innerBatch.Vertex3f(-35.0f, 35.0f, fZ);
+    innerBatch.Color4f(0.75f, 0.75f, 0.75f, 1.0f);
+    innerBatch.Normal3f(0.0f, 1.0f, 0.0f);
+    innerBatch.Vertex3f(35.0f, 35.0f, fZ);
+    innerBatch.Color4f(0.75f, 0.75f, 0.75f, 1.0f);
+    innerBatch.Normal3f(0.0f, 1.0f, 0.0f);
+    innerBatch.Vertex3f(35.0f, 35.0f, bZ);
+    innerBatch.Color4f(0.75f, 0.75f, 0.75f, 1.0f);
+    innerBatch.Normal3f(0.0f, 1.0f, 0.0f);
+    innerBatch.Vertex3f(-35.0f,35.0f,bZ);
+    
+    
+    innerBatch.Color4f(0.75f, 0.75f, 0.75f, 1.0f);
+    innerBatch.Normal3f(0.0f, 1.0f, 0.0f);
+    innerBatch.Vertex3f(-35.0f, -35.0f, fZ);
+    innerBatch.Color4f(0.75f, 0.75f, 0.75f, 1.0f);
+    innerBatch.Normal3f(0.0f, 1.0f, 0.0f);
+    innerBatch.Vertex3f(-35.0f, -35.0f, bZ);
+    innerBatch.Color4f(0.75f, 0.75f, 0.75f, 1.0f);
+    innerBatch.Normal3f(0.0f, 1.0f, 0.0f);
+    innerBatch.Vertex3f(35.0f, -35.0f, bZ);
+    innerBatch.Color4f(0.75f, 0.75f, 0.75f, 1.0f);
+    innerBatch.Normal3f(0.0f, 1.0f, 0.0f);
+    innerBatch.Vertex3f(35.0f, -35.0f, fZ);
+    
+    
+    innerBatch.Color4f(0.75f, 0.75f, 0.75f, 1.0f);
+    innerBatch.Normal3f(1.0f, 0.0f, 0.0f);
+    innerBatch.Vertex3f(-35.0f, 35.0f, fZ);
+    innerBatch.Color4f(0.75f, 0.75f, 0.75f, 1.0f);
+    innerBatch.Normal3f(1.0f, 0.0f, 0.0f);
+    innerBatch.Vertex3f(-35.0f, 35.0f, bZ);
+    innerBatch.Color4f(0.75f, 0.75f, 0.75f, 1.0f);
+    innerBatch.Normal3f(1.0f, 0.0f, 0.0f);
+    innerBatch.Vertex3f(-35.0f, -35.0f, bZ);
+    innerBatch.Color4f(0.75f, 0.75f, 0.75f, 1.0f);
+    innerBatch.Normal3f(1.0f, 0.0f, 0.0f);
+    innerBatch.Vertex3f(-35.0f, -35.0f, fZ);
+    
+    
+    innerBatch.Color4f(0.75f, 0.75f, 0.75f, 1.0f);
+    innerBatch.Normal3f(-1.0f, 0.0f, 0.0f);
+    innerBatch.Vertex3f(35.0f, 35.0f, fZ);
+    innerBatch.Color4f(0.75f, 0.75f, 0.75f, 1.0f);
+    innerBatch.Normal3f(-1.0f, 0.0f, 0.0f);
+    innerBatch.Vertex3f(35.0f, -35.0f, fZ);
+    innerBatch.Color4f(0.75f, 0.75f, 0.75f, 1.0f);
+    innerBatch.Normal3f(-1.0f, 0.0f, 0.0f);
+    innerBatch.Vertex3f(35.0f, -35.0f, bZ);
+    innerBatch.Color4f(0.75f, 0.75f, 0.75f, 1.0f);
+    innerBatch.Normal3f(-1.0f, 0.0f, 0.0f);
+    innerBatch.Vertex3f(35.0f, 35.0f, bZ);
+    
+    innerBatch.End();
 }
 
 
@@ -89,53 +461,23 @@ void DrawWireFramedBatch(GLTriangleBatch* pBatch)
 // 召唤场景
 void RenderScene(void)
 {
-    
-    static GLfloat vFloorColor[] = { 0.0f, 1.0f, 0.0f, 1.0f };
-    static GLfloat vTrousColor[] = { 1.0f, 0.0f, 0.0f, 1.0f };
-    static GLfloat vSphereColor[] = { .0f, .0f, 1.0f, 1.0f };
-    
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
-    //建立一个基于世界变化的动画
-    static CStopWatch rotTime;
+    //开启深度测试
+    glEnable(GL_DEPTH_TEST);
     
-    //当前时间 * 60s
-    float yRot = rotTime.GetElapsedSeconds() * 60.0f;
+    modelViewMatrix.PushMatrix(viewFrame);
     
-    modelViewMatrix.PushMatrix();
+    //设置颜色
+    GLfloat vRed[] = { 1.0f, 0.0f, 0.0f, 1.0f };
+    GLfloat vGray[] = { .75f, .75f, .75f, 1.0f };
     
-    //设置观察者矩阵
-    M3DMatrix44f mCamera;
-    cameraFrame.GetCameraMatrix(mCamera);
-    modelViewMatrix.PushMatrix(mCamera);
+    //默认光源着色器
+    shaderManager.UseStockShader(GLT_SHADER_DEFAULT_LIGHT, transformPipelint.GetModelViewMatrix(), transformPipelint.GetProjectionMatrix(), vRed);
+    tubeBatch.Draw();
     
-    //绘制底板
-    shaderManager.UseStockShader(GLT_SHADER_FLAT, transformPipelint.GetModelViewProjectionMatrix(), vFloorColor);
-    floorBatch.Draw();
-    
-    //向屏幕的-Z方向移动2.5个单位
-    modelViewMatrix.Translate(.0f, .0f, -2.5f);
-    
-    //将结果压栈
-    modelViewMatrix.PushMatrix();
-    
-    //旋转
-    modelViewMatrix.Rotate(yRot, .0f, 1.0f, .0f);
-    
-    //绘制🍩
-    shaderManager.UseStockShader(GLT_SHADER_FLAT, transformPipelint.GetModelViewProjectionMatrix(), vTrousColor);
-    torusBatch.Draw();
-    
-    modelViewMatrix.PopMatrix();
-    
-    //绘制公转的球体
-    modelViewMatrix.Rotate(yRot * -2.0f, .0f, 1.0f, .0f);
-    modelViewMatrix.Translate(.8f, .0f, .0f);
-    
-    shaderManager.UseStockShader(GLT_SHADER_FLAT, transformPipelint.GetModelViewProjectionMatrix(), vSphereColor);
-    sphereBatch.Draw();
-    
-    modelViewMatrix.PopMatrix();
+    shaderManager.UseStockShader(GLT_SHADER_DEFAULT_LIGHT, transformPipelint.GetModelViewMatrix(), transformPipelint.GetProjectionMatrix(), vRed);
+    innerBatch.Draw();
     
     modelViewMatrix.PopMatrix();
     
@@ -148,26 +490,25 @@ void RenderScene(void)
 //特殊键位处理（上、下、左、右移动）
 void SpecialKeys(int key, int x, int y)
 {
-    float linar = .1f;
-    float angular = float(m3dDegToRad(5.0f));
-    
+   
     if (key == GLUT_KEY_UP) {
-        cameraFrame.MoveForward(linar);
+        viewFrame.RotateWorld(m3dDegToRad(-5.0f), 1.0f, .0f, .0f);
     }
     
     if (key == GLUT_KEY_DOWN) {
-        cameraFrame.MoveForward(-linar);
+        viewFrame.RotateWorld(m3dDegToRad(5.0f), 1.0f, .0f, .0f);
     }
     
     if (key == GLUT_KEY_RIGHT) {
-        cameraFrame.RotateWorld(-angular, .0f, 1.0f, .0f);
+        viewFrame.RotateWorld(m3dDegToRad(-5.0f), .0f, 1.0f, .0f);
     }
     
     if (key == GLUT_KEY_LEFT) {
-        cameraFrame.RotateWorld(angular, .0f, 1.0f, .0f);
+        viewFrame.RotateWorld(m3dDegToRad(5.0f), .0f, 1.0f, .0f);
     }
     
-
+    //刷新窗口
+    glutPostRedisplay();
 }
 
 
@@ -198,7 +539,7 @@ void ChangeSize(int w, int h)
     glViewport(0, 0, w, h);
     
     //透视投影
-    viewFrustum.SetPerspective(35.0f, float(w)/float(h), 1.0f, 1000.0f);
+    viewFrustum.SetOrthographic(-130.0f, 130.0f, -130.0f, 130.0f, -130.0f, 130.0f);
     
     //获取投影矩阵到
     projectionMatrix.LoadMatrix(viewFrustum.GetProjectionMatrix());
@@ -221,7 +562,7 @@ int main(int argc, char* argv[])
     glutInitWindowSize(800, 600);
     
     //创建window的名称
-    glutCreateWindow("SphereWorld");
+    glutCreateWindow("Orthographic Projection 正交投影");
     
     //注册回调函数（改变尺寸）
     glutReshapeFunc(ChangeSize);
