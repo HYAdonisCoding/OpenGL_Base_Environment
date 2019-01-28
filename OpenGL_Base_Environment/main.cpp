@@ -4,7 +4,6 @@
 #include "GLFrustum.h"
 #include "GLBatch.h"
 #include "GLGeometryTransform.h"
-#include "StopWatch.h"
 
 #include <math.h>
 #ifdef __APPLE__
@@ -37,7 +36,10 @@ void SetupRC()
 {
     glClearColor(0.0f, 0.0f, 0.75f, 1.0f);
     
+    glEnable(GL_DEPTH_TEST);
+    
     shaderManager.InitializeStockShaders();
+    viewFrame.MoveForward(450.0f);
 
     //指定绘图的方式
     tubeBatch.Begin(GL_QUADS, 200);
@@ -445,15 +447,6 @@ void SetupRC()
 
 void DrawWireFramedBatch(GLTriangleBatch* pBatch)
 {
-    
-    
-    //恢复设置
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    glDisable(GL_POLYGON_OFFSET_LINE);
-    glLineWidth(1.0f);
-    glDisable(GL_BLEND);
-    glDisable(GL_LINE_SMOOTH);
-    
 }
 
 
@@ -539,7 +532,7 @@ void ChangeSize(int w, int h)
     glViewport(0, 0, w, h);
     
     //透视投影
-    viewFrustum.SetOrthographic(-130.0f, 130.0f, -130.0f, 130.0f, -130.0f, 130.0f);
+    viewFrustum.SetPerspective(35.0f, float(w)/float(h), 1.0f, 1000.0f);
     
     //获取投影矩阵到
     projectionMatrix.LoadMatrix(viewFrustum.GetProjectionMatrix());
@@ -562,7 +555,7 @@ int main(int argc, char* argv[])
     glutInitWindowSize(800, 600);
     
     //创建window的名称
-    glutCreateWindow("Orthographic Projection 正交投影");
+    glutCreateWindow("Perspective Projection 透视投影");
     
     //注册回调函数（改变尺寸）
     glutReshapeFunc(ChangeSize);
