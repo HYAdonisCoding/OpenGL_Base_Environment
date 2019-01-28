@@ -5,13 +5,5 @@ The Base Environment of OpenGL.
 
 
 # 效果图
-##### Sphere 球
-![Sphere 球](https://github.com/HYAdonisCoding/OpenGL_Base_Environment/blob/Sphere/Images/Sphere%20球.png)
-##### Torus 环
-![Torus 环](https://github.com/HYAdonisCoding/OpenGL_Base_Environment/blob/Sphere/Images/Torus%20环.png) 
-##### Cylinder 圆柱
-![Cylinder 圆柱](https://github.com/HYAdonisCoding/OpenGL_Base_Environment/blob/Sphere/Images/Cylinder%20圆柱.png)
-##### Cone 圆锥
-![Cone 圆锥](https://github.com/HYAdonisCoding/OpenGL_Base_Environment/blob/Sphere/Images/Cone%20圆锥.png)
-##### Disk 光盘
-![Disk 光盘](https://github.com/HYAdonisCoding/OpenGL_Base_Environment/blob/Sphere/Images/Disk%20光盘.png)
+##### 自传
+![自传](https://github.com/HYAdonisCoding/OpenGL_Base_Environment/blob/TorusBatchRotate/Images/自传.gif)
