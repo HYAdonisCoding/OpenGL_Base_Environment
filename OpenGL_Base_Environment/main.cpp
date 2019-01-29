@@ -16,6 +16,9 @@
 #include <GL/glut.h>
 #endif
 
+#define NUM_SPHERE 50
+GLFrame sphere[NUM_SPHERE];
+
 /** 着色器管理器 */
 GLShaderManager		shaderManager;
 /** 模型视图矩阵 */
@@ -45,7 +48,9 @@ void SetupRC()
 
     glEnable(GL_DEPTH_TEST);
     
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    
+    //线框渲染
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     
@@ -67,6 +72,17 @@ void SetupRC()
     }
     
     floorBatch.End();
+    
+    //随机放置球体
+    for (int i = 0; i < NUM_SPHERE; i++) {
+        //Y轴不变0,x,z随机
+        GLfloat x = (GLfloat)(((rand() % 400)-200) * .1f);
+        GLfloat y = (GLfloat)(((rand() % 5) - 5) * .1f);
+        GLfloat z = (GLfloat)(((rand() % 400)-200) * .1f);
+        
+//        sphere[i].SetOrigin(x, 0.0f, z);
+        sphere[i].SetOrigin(x, -y, z);
+    }
 }
 
 
@@ -102,16 +118,40 @@ void RenderScene(void)
     //当前时间 * 60s
     float yRot = rotTime.GetElapsedSeconds() * 60.0f;
     
-    modelViewMatrix.PushMatrix();
+//    modelViewMatrix.PushMatrix();
     
     //设置观察者矩阵
     M3DMatrix44f mCamera;
     cameraFrame.GetCameraMatrix(mCamera);
     modelViewMatrix.PushMatrix(mCamera);
+    //添加光源
+    M3DVector4f vLightPos = {.0f, 10.0f, 5.0f, 1.0f};
+    M3DVector4f vLightEyePos;
+    
+    //将照相机的mCamera 与光源矩阵vLightPos 相乘得到 vLightEyePos
+    m3dTransformVector4(vLightEyePos, vLightPos, mCamera);
     
     //绘制底板
     shaderManager.UseStockShader(GLT_SHADER_FLAT, transformPipelint.GetModelViewProjectionMatrix(), vFloorColor);
     floorBatch.Draw();
+    
+    //绘制悬浮随机小球体 sphereBatch
+    for (int i = 0; i < NUM_SPHERE; i++) {
+        modelViewMatrix.PushMatrix();
+        modelViewMatrix.MultMatrix(sphere[i]);
+        
+        //shaderManager.UseStockShader(GLT_SHADER_FLAT, transformPipelint.GetModelViewProjectionMatrix(), vSphereColor);
+        //默认光源着色器
+        /** 参数1: GLT_SHADER_POINT_LIGHT_DIFF
+            参数2: 模型视图矩阵
+            参数3:投影矩阵
+            参数4"光源位置
+            参数5:漫反射颜色
+         */
+        shaderManager.UseStockShader(GLT_SHADER_POINT_LIGHT_DIFF, transformPipelint.GetModelViewMatrix(), transformPipelint.GetProjectionMatrix(), vLightEyePos, vSphereColor);
+        sphereBatch.Draw();
+        modelViewMatrix.PopMatrix();
+    }
     
     //向屏幕的-Z方向移动2.5个单位
     modelViewMatrix.Translate(.0f, .0f, -2.5f);
@@ -123,7 +163,8 @@ void RenderScene(void)
     modelViewMatrix.Rotate(yRot, .0f, 1.0f, .0f);
     
     //绘制🍩
-    shaderManager.UseStockShader(GLT_SHADER_FLAT, transformPipelint.GetModelViewProjectionMatrix(), vTrousColor);
+    //shaderManager.UseStockShader(GLT_SHADER_FLAT, transformPipelint.GetModelViewProjectionMatrix(), vTrousColor);
+    shaderManager.UseStockShader(GLT_SHADER_POINT_LIGHT_DIFF, transformPipelint.GetModelViewMatrix(), transformPipelint.GetProjectionMatrix(), vLightEyePos, vTrousColor);
     torusBatch.Draw();
     
     modelViewMatrix.PopMatrix();
