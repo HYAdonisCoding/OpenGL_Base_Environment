@@ -5,5 +5,5 @@ The Base Environment of OpenGL.
 网络管线
 
 # 效果图
-##### 随机球体
-![随机球体](https://github.com/HYAdonisCoding/OpenGL_Base_Environment/blob/SphereWorld/Images/随机球体公转自传.gif)
+##### Pyramid
+![Pyramid](https://github.com/HYAdonisCoding/OpenGL_Base_Environment/blob/Pyramid/Images/Pyramid.png)
