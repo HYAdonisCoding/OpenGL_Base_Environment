@@ -7,6 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		7A901C0122029A2D008087D1 /* Marble.tga in Resources */ = {isa = PBXBuildFile; fileRef = 7A901BF922029A2C008087D1 /* Marble.tga */; };
+		7A901C0222029A2D008087D1 /* brick.tga in Resources */ = {isa = PBXBuildFile; fileRef = 7A901BFA22029A2C008087D1 /* brick.tga */; };
+		7A901C0322029A2D008087D1 /* ceiling.tga in Resources */ = {isa = PBXBuildFile; fileRef = 7A901BFB22029A2D008087D1 /* ceiling.tga */; };
+		7A901C0422029A2D008087D1 /* MoonLike.tga in Resources */ = {isa = PBXBuildFile; fileRef = 7A901BFC22029A2D008087D1 /* MoonLike.tga */; };
+		7A901C0522029A2D008087D1 /* floor.tga in Resources */ = {isa = PBXBuildFile; fileRef = 7A901BFD22029A2D008087D1 /* floor.tga */; };
+		7A901C0622029A2D008087D1 /* SphereMap.tga in Resources */ = {isa = PBXBuildFile; fileRef = 7A901BFE22029A2D008087D1 /* SphereMap.tga */; };
+		7A901C0722029A2D008087D1 /* Marslike.tga in Resources */ = {isa = PBXBuildFile; fileRef = 7A901BFF22029A2D008087D1 /* Marslike.tga */; };
+		7A901C0822029A2D008087D1 /* stone.tga in Resources */ = {isa = PBXBuildFile; fileRef = 7A901C0022029A2D008087D1 /* stone.tga */; };
 		D6CFA6411F546B5D00FD9232 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D6CFA6401F546B5D00FD9232 /* Assets.xcassets */; };
 		D6CFA6441F546B5D00FD9232 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D6CFA6421F546B5D00FD9232 /* Main.storyboard */; };
 		D6CFA64F1F546B5D00FD9232 /* _1_OpenGL_____Tests.m in Sources */ = {isa = PBXBuildFile; fileRef = D6CFA64E1F546B5D00FD9232 /* _1_OpenGL_____Tests.m */; };
@@ -35,6 +43,14 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		7A901BF922029A2C008087D1 /* Marble.tga */ = {isa = PBXFileReference; lastKnownFileType = file; path = Marble.tga; sourceTree = "<group>"; };
+		7A901BFA22029A2C008087D1 /* brick.tga */ = {isa = PBXFileReference; lastKnownFileType = file; path = brick.tga; sourceTree = "<group>"; };
+		7A901BFB22029A2D008087D1 /* ceiling.tga */ = {isa = PBXFileReference; lastKnownFileType = file; path = ceiling.tga; sourceTree = "<group>"; };
+		7A901BFC22029A2D008087D1 /* MoonLike.tga */ = {isa = PBXFileReference; lastKnownFileType = file; path = MoonLike.tga; sourceTree = "<group>"; };
+		7A901BFD22029A2D008087D1 /* floor.tga */ = {isa = PBXFileReference; lastKnownFileType = file; path = floor.tga; sourceTree = "<group>"; };
+		7A901BFE22029A2D008087D1 /* SphereMap.tga */ = {isa = PBXFileReference; lastKnownFileType = file; path = SphereMap.tga; sourceTree = "<group>"; };
+		7A901BFF22029A2D008087D1 /* Marslike.tga */ = {isa = PBXFileReference; lastKnownFileType = file; path = Marslike.tga; sourceTree = "<group>"; };
+		7A901C0022029A2D008087D1 /* stone.tga */ = {isa = PBXFileReference; lastKnownFileType = file; path = stone.tga; sourceTree = "<group>"; };
 		D6CFA6341F546B5D00FD9232 /* OpenGL_Base_Environment.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OpenGL_Base_Environment.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D6CFA6401F546B5D00FD9232 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		D6CFA6431F546B5D00FD9232 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
@@ -93,6 +109,21 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		7A901BF8220299FA008087D1 /* Resoures */ = {
+			isa = PBXGroup;
+			children = (
+				7A901BFA22029A2C008087D1 /* brick.tga */,
+				7A901BFB22029A2D008087D1 /* ceiling.tga */,
+				7A901BFD22029A2D008087D1 /* floor.tga */,
+				7A901BF922029A2C008087D1 /* Marble.tga */,
+				7A901BFF22029A2D008087D1 /* Marslike.tga */,
+				7A901BFC22029A2D008087D1 /* MoonLike.tga */,
+				7A901BFE22029A2D008087D1 /* SphereMap.tga */,
+				7A901C0022029A2D008087D1 /* stone.tga */,
+			);
+			name = Resoures;
+			sourceTree = "<group>";
+		};
 		D6CFA62B1F546B5D00FD9232 = {
 			isa = PBXGroup;
 			children = (
@@ -129,6 +160,7 @@
 		D6CFA63A1F546B5D00FD9232 /* Supporting Files */ = {
 			isa = PBXGroup;
 			children = (
+				7A901BF8220299FA008087D1 /* Resoures */,
 				D6CFA67E1F546CE100FD9232 /* main.cpp */,
 			);
 			name = "Supporting Files";
@@ -297,8 +329,16 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7A901C0822029A2D008087D1 /* stone.tga in Resources */,
+				7A901C0522029A2D008087D1 /* floor.tga in Resources */,
 				D6CFA6411F546B5D00FD9232 /* Assets.xcassets in Resources */,
 				D6CFA6441F546B5D00FD9232 /* Main.storyboard in Resources */,
+				7A901C0722029A2D008087D1 /* Marslike.tga in Resources */,
+				7A901C0422029A2D008087D1 /* MoonLike.tga in Resources */,
+				7A901C0622029A2D008087D1 /* SphereMap.tga in Resources */,
+				7A901C0222029A2D008087D1 /* brick.tga in Resources */,
+				7A901C0322029A2D008087D1 /* ceiling.tga in Resources */,
+				7A901C0122029A2D008087D1 /* Marble.tga in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
