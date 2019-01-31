@@ -6,19 +6,12 @@
 #include "GLGeometryTransform.h"
 #include "StopWatch.h"
 
-#include <math.h>
-#include <stdio.h>
-
 #ifdef __APPLE__
 #include <glut/glut.h>
 #else
 #define FREEGLUT_STATIC
 #include <GL/glut.h>
 #endif
-
-/** 随机球体 */
-#define NUM_SPHERE 50
-GLFrame sphere[NUM_SPHERE];
 
 /** 着色器管理器 */
 GLShaderManager		shaderManager;
@@ -31,17 +24,255 @@ GLFrustum		    viewFrustum;
 /** 几何视图变换管道 */
 GLGeometryTransform transformPipelint;
 
-/** 花托批次类 */
-GLTriangleBatch     torusBatch;
-/** 底板批次类 */
+/** 地面批次类 */
 GLBatch             floorBatch;
-/** 球批次类 */
-GLTriangleBatch     sphereBatch;
-/** 角色帧 照相机角色帧 */
-GLFrame             cameraFrame;
+/** 天花板批次类 */
+GLBatch             ceilingBatch;
+/** 左侧墙批次类 */
+GLBatch             leftWallBatch;
+/** 右侧墙 */
+GLBatch             rightWallBatch;
+/** 深度初始值 -65 */
+GLfloat             viewZ = -65.0f;
+
+//纹理标识符号
+/** 墙面 */
+#define TEXTURE_BRICK       0
+/** 底板 */
+#define TEXTURE_FLOOR       1
+/** 纹理天花板 */
+#define TEXTURE_CEILING     2
+/** 纹理个数 */
+#define TEXTURE_COUNT       3
+/** 纹理标记数组 */
+GLuint textures[TEXTURE_COUNT];
 
 /** 添加纹理 纹理标记数组 */
 GLuint uiTextures[3];
+
+/** TAG文件名字数组 */
+const char *szTextureFiles[TEXTURE_COUNT] = {"brick.tga", "floor.tga", "ceiling.tga"};
+
+
+/**
+ 菜单栏修改纹理的属性--缩小过滤器
+
+ @param value 菜单排序
+ */
+void ProcessMenu(int value)
+{
+    GLint iLoop;
+    
+    //3个纹理
+    for (iLoop = 0; iLoop < TEXTURE_COUNT; iLoop++) {
+        /** 绑定纹理
+         1.使用纹理的类型
+         2.纹理标记
+         */
+        glBindTexture(GL_TEXTURE_2D, textures[iLoop]);
+        
+        /** 配置纹理参数
+         glTexParameteri(GLenum target, GLenum pname, GLint param)
+         1.使用纹理的类型
+         2.纹理参数(属性)
+         3.对应参数的值
+         */
+        GLenum target = GL_TEXTURE_2D;
+        GLenum pname = GL_TEXTURE_MIN_FILTER;
+        GLint param = GL_NEAREST;
+        switch (value) {
+            case 0:
+                
+                break;
+            case 1:
+                param = GL_LINEAR;
+                break;
+            case 2:
+                param = GL_NEAREST_MIPMAP_NEAREST;
+                break;
+            case 3:
+                param = GL_NEAREST_MIPMAP_LINEAR;
+                break;
+            case 4:
+                param = GL_LINEAR_MIPMAP_NEAREST;
+                break;
+            case 5:
+                param = GL_LINEAR_MIPMAP_LINEAR;
+                break;
+            case 6:
+                //设置各向异性过滤
+                GLfloat fLargest;
+                //设置g获取各向异性过滤的最大数量
+                glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &fLargest);
+                pname = GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT;
+                param = fLargest;
+                break;
+            case 7:
+                //各向同性过滤,数量为1.0
+                pname = GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT;
+                param = 1.0;
+                break;
+            default:
+                break;
+        }
+        glTexParameteri(target, pname, param);
+        
+        
+    }
+    
+    glutPostRedisplay();
+    
+}
+
+// 此函数在呈现上下文中进行任何必要的初始化。.
+// 这是第一次做任何与opengl相关的任务。
+void SetupRC()
+{
+    GLbyte *pBytes;
+    GLint iWidth, iHeight, iComponents, iLoop;
+    GLenum eFormat;
+    
+    shaderManager.InitializeStockShaders();
+    
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    
+    //1.加载纹理
+    /** glGenTextures (GLsizei n, GLuint *textures);
+     1.纹理数量
+     2.纹理对象标识数组
+     */
+    glGenTextures(TEXTURE_COUNT, textures);
+    
+    for (iLoop = 0; iLoop < TEXTURE_COUNT; iLoop++) {
+        //2.绑定纹理
+        /** glBindTexture(GLenum target, GLuint texture)
+         1.使用的纹理类型
+         2.纹理标记
+         */
+        glBindTexture(GL_TEXTURE_2D, textures[iLoop]);
+        
+        //3.加载tga文件
+        /** gltReadTGABits(const char *szFileName, GLint *iWidth, GLint *iHeight, GLint *iComponents, GLenum *eFormat)
+         1.纹理文件的名称
+         2.获取纹理文件的宽度
+         3.获取纹理文件的高度
+         4.获取纹理文件的组件
+         5.获取纹理文件的格式
+         
+         返回值:指向图像数据的指针
+         */
+        pBytes = gltReadTGABits(szTextureFiles[iLoop], &iWidth, &iHeight, &iComponents, &eFormat);
+        
+        //放大过滤器
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        //缩小过滤器
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        //环绕方式s
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        //环绕方式t
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        
+        //载入纹理
+        /** glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid *pixels)
+         1.使用纹理的类型
+         2.mip贴图的层次
+         3.纹理单元的颜色组成方式(从读取像素图中获得)
+         4\5\6\7.宽\高\边框\格式
+         8.像素数据的数据类型
+         9.指向纹理图像数据的指针
+         */
+        glTexImage2D(GL_TEXTURE_2D, 0, iComponents, iWidth, iHeight, 0, eFormat, GL_UNSIGNED_BYTE, pBytes);
+        
+        //生成mip图层
+        glGenerateMipmap(GL_TEXTURE_2D);
+        
+        free(pBytes);
+        
+    }
+    
+    //建立立体图像
+    GLfloat z;
+    /** Begin(GLenum primitive, GLuint nVerts GLuint nTextureUnits = 0);
+     1.绘图模式
+     2.顶点个数
+     3.纹理,默认等于0
+     */
+    floorBatch.Begin(GL_TRIANGLE_STRIP, 28, 1);
+    
+    for (z = 60.0f; z >= 0.0f; z -= 10.0f) {
+        //指定左下角顶点
+        floorBatch.Vertex3f(-10.0f, -10.0f, z);
+        //指定顶点对应纹理的坐标
+        floorBatch.MultiTexCoord2f(0, 0, 0);
+        
+        //指定右下角顶点以及纹理坐标
+        floorBatch.Vertex3f(10.0f, -10.0f, z);
+        floorBatch.MultiTexCoord2f(0, 1, 0);
+        
+        floorBatch.Vertex3f(-10.0f, -10.0f, z-10.0f);
+        //指定顶点w对应的纹理坐标
+        floorBatch.MultiTexCoord2f(0, 0, 1.0f);
+        
+        floorBatch.Vertex3f(10, -10.0f, z-10.0f);
+        floorBatch.MultiTexCoord2f(0, 1.0f, 1.0f);
+        
+    }
+    
+    floorBatch.End();
+    
+    ceilingBatch.Begin(GL_TRIANGLE_STRIP, 28, 1);
+    for(z = 60.0f; z >= 0.0f; z -=10.0f)
+    {
+        ceilingBatch.MultiTexCoord2f(0, 0.0f, 1.0f);
+        ceilingBatch.Vertex3f(-10.0f, 10.0f, z - 10.0f);
+        
+        ceilingBatch.MultiTexCoord2f(0, 1.0f, 1.0f);
+        ceilingBatch.Vertex3f(10.0f, 10.0f, z - 10.0f);
+        
+        ceilingBatch.MultiTexCoord2f(0, 0.0f, 0.0f);
+        ceilingBatch.Vertex3f(-10.0f, 10.0f, z);
+        
+        ceilingBatch.MultiTexCoord2f(0, 1.0f, 0.0f);
+        ceilingBatch.Vertex3f(10.0f, 10.0f, z);
+    }
+    ceilingBatch.End();
+    
+    //参考PPT图6-12
+    leftWallBatch.Begin(GL_TRIANGLE_STRIP, 28, 1);
+    for(z = 60.0f; z >= 0.0f; z -=10.0f)
+    {
+        leftWallBatch.MultiTexCoord2f(0, 0.0f, 0.0f);
+        leftWallBatch.Vertex3f(-10.0f, -10.0f, z);
+        
+        leftWallBatch.MultiTexCoord2f(0, 0.0f, 1.0f);
+        leftWallBatch.Vertex3f(-10.0f, 10.0f, z);
+        
+        leftWallBatch.MultiTexCoord2f(0, 1.0f, 0.0f);
+        leftWallBatch.Vertex3f(-10.0f, -10.0f, z - 10.0f);
+        
+        leftWallBatch.MultiTexCoord2f(0, 1.0f, 1.0f);
+        leftWallBatch.Vertex3f(-10.0f, 10.0f, z - 10.0f);
+    }
+    leftWallBatch.End();
+    
+    //参考PPT图6-13
+    rightWallBatch.Begin(GL_TRIANGLE_STRIP, 28, 1);
+    for(z = 60.0f; z >= 0.0f; z -=10.0f)
+    {
+        rightWallBatch.MultiTexCoord2f(0, 0.0f, 0.0f);
+        rightWallBatch.Vertex3f(10.0f, -10.0f, z);
+        
+        rightWallBatch.MultiTexCoord2f(0, 0.0f, 1.0f);
+        rightWallBatch.Vertex3f(10.0f, 10.0f, z);
+        
+        rightWallBatch.MultiTexCoord2f(0, 1.0f, 0.0f);
+        rightWallBatch.Vertex3f(10.0f, -10.0f, z - 10.0f);
+        
+        rightWallBatch.MultiTexCoord2f(0, 1.0f, 1.0f);
+        rightWallBatch.Vertex3f(10.0f, 10.0f, z - 10.0f);
+    }
+    rightWallBatch.End();}
+
 
 bool LoadTGATexture(const char *szFileName, GLenum minFilter, GLenum magFilter, GLenum wrapMode)
 {
@@ -111,75 +342,15 @@ bool LoadTGATexture(const char *szFileName, GLenum minFilter, GLenum magFilter, 
     return true;
 }
 
-// 此函数在呈现上下文中进行任何必要的初始化。.
-// 这是第一次做任何与opengl相关的任务。
-void SetupRC()
-{
-    shaderManager.InitializeStockShaders();
 
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-    
-    //线框渲染
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    
-    //绘制甜甜圈
-    gltMakeTorus(torusBatch, .4f, .15f, 30, 30);
-    
-    //绘制球体
-    gltMakeSphere(sphereBatch, .1f, 26, 13);
-    
-    //往底板批处理中添加顶点数据
-    GLfloat textSize = 10.0f;
-    //绘制底板
-    floorBatch.Begin(GL_TRIANGLE_FAN, 4, 1);
-    floorBatch.MultiTexCoord2f(0, .0f, .0f);
-    floorBatch.Vertex3f(-20.0f, -.41f, 20.0f);
-    
-    floorBatch.MultiTexCoord2f(0, textSize, .0f);
-    floorBatch.Vertex3f(20.0f, -.41f, -20.0f);
-    
-    floorBatch.MultiTexCoord2f(0, textSize, textSize);
-    floorBatch.Vertex3f(20.0f, -.41f, -20.0f);
-    
-    floorBatch.MultiTexCoord2f(0, .0f, textSize);
-    floorBatch.Vertex3f(-20.0f, -.41f, -20.0f);
-    floorBatch.End();
-    
-    //绑定3个纹理
-    glGenTextures(3, uiTextures);
-    
-    /** 将TGA文件加载为2D纹理
-     1.纹理文件名称
-     2\3.需要缩小\放大的过滤器
-     4.纹理坐标环绕模式
-     */
-    glBindTexture(GL_TEXTURE_2D, uiTextures[0]);
-    LoadTGATexture("marble.tga", GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR, GL_REPEAT);
-    
-    glBindTexture(GL_TEXTURE_2D, uiTextures[1]);
-    LoadTGATexture("marslike.tga", GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR, GL_CLAMP_TO_EDGE);
-    
-    glBindTexture(GL_TEXTURE_2D, uiTextures[2]);
-    LoadTGATexture("moonlike.tga", GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR, GL_CLAMP_TO_EDGE);
-    
-    //随机放置球体
-    for (int i = 0; i < NUM_SPHERE; i++) {
-        //Y轴不变0,x,z随机
-        GLfloat x = (GLfloat)(((rand() % 400)-200) * .1f);
-        GLfloat y = (GLfloat)(((rand() % 5) - 5) * .1f);
-        GLfloat z = (GLfloat)(((rand() % 400)-200) * .1f);
-        
-        sphere[i].SetOrigin(x, 0.0f, z);
-//        sphere[i].SetOrigin(x, -y, z);
-    }
-}
-
+/**
+ 关闭渲染环境
+ */
 void ShutdownRC(void)
 {
-    glDeleteTextures(3, uiTextures);
+    //删除纹理
+    glDeleteTextures(TEXTURE_COUNT, textures);
 }
 
 
@@ -197,187 +368,147 @@ void DrawWireFramedBatch(GLTriangleBatch* pBatch)
 }
 
 
-void DrawSongAndDance(GLfloat yRot)
-{
-    static GLfloat vWhite[] = {1.0f, 1.0f, 1.0f, 1.0f};
-    static GLfloat vLightPos[] = {.0f, 3.0f, .0f, 1.0f};
-    
-    //添加光源 光源位置的全局坐标存储在vLightPos变量中，其中包含了光源位置x坐标、y坐标、z坐标和w坐标。我们必须保留w坐标为1.0。因为无法用一个3分量去乘以4*4矩阵
-    M3DVector4f vLightTransformed;
-    
-    //相机矩阵
-    M3DMatrix44f mCamera;
-    //从modelViewMatrix 获取矩阵堆栈顶部的值
-    modelViewMatrix.GetMatrix(mCamera);
-    //将相机矩阵mCamera与光源矩阵vLightPos相乘获得vLightTransformed矩阵
-    m3dTransformVector4(vLightTransformed, vLightPos, mCamera);
-    
-    //结果压栈
-    modelViewMatrix.PushMatrix();
-    //仿射变换, 平移
-    modelViewMatrix.Translatev(vLightPos);
-    
-    /** 绘制(平面着色器) 参数
-     1.GLT_SHADER_FLAT
-     2.模型视图投影矩阵
-     3.颜色数组
-     */
-    shaderManager.UseStockShader(GLT_SHADER_FLAT, transformPipelint.GetModelViewProjectionMatrix(), vWhite);
-    sphereBatch.Draw();
-    
-    //恢复矩阵
-    modelViewMatrix.PopMatrix();
-    
-    //绘制悬浮球体 绑定纹理
-    glBindTexture(GL_TEXTURE_2D, uiTextures[2]);
-    
-    //绘制50个蓝色悬浮球体,绘制一个压栈一个,绘制完成出栈一个
-    for (int i = 0; i < NUM_SPHERE; i++) {
-        modelViewMatrix.PushMatrix();
-        modelViewMatrix.MultMatrix(sphere[i]);
-        
-        /** 绘制光源,修改着色器管理器 参数
-         1.GLT_SHADER_TEXTURE_POINT_LIGHT_DIFF
-         2.模型视图矩阵
-         3.投影矩阵
-         4.视点坐标系中的光源位置
-         5.基本漫反射颜色
-         6.颜色(使用纹理则不用颜色)
-         */
-        shaderManager.UseStockShader(GLT_SHADER_TEXTURE_POINT_LIGHT_DIFF,
-                                     modelViewMatrix.GetMatrix(),
-                                     transformPipelint.GetProjectionMatrix(),
-                                     vLightTransformed,
-                                     vWhite,
-                                     0);
-        sphereBatch.Draw();
-        
-        modelViewMatrix.PopMatrix();
-    }
-    
-    //绘制旋转甜甜圈
-    //modelViewMatrix 顶部矩阵沿着z轴移动2.5单位
-    modelViewMatrix.Translate(.0f, .2f, -2.5f);
-    
-    //保存平移 (公转自转)
-    modelViewMatrix.PushMatrix();
-    
-    //顶部矩阵旋转
-    modelViewMatrix.Rotate(yRot, .0f, 1.0f, .0f);
-    
-    //绑定纹理
-    glBindTexture(GL_TEXTURE_2D, uiTextures[1]);
-    /** 绘制光源,修改着色器管理器 参数
-     1.GLT_SHADER_TEXTURE_POINT_LIGHT_DIFF
-     2.模型视图矩阵
-     3.投影矩阵
-     4.视点坐标系中的光源位置
-     5.基本漫反射d颜色
-     6.颜色(使用纹理则为0)
-     */
-    shaderManager.UseStockShader(GLT_SHADER_TEXTURE_POINT_LIGHT_DIFF, modelViewMatrix.GetMatrix(), transformPipelint.GetProjectionMatrix(), vLightTransformed, vWhite, 0);
-    
-    //绘制
-    torusBatch.Draw();
-    
-    //恢复矩阵
-    modelViewMatrix.PopMatrix();
-    
-    //绘制公转球体
-    modelViewMatrix.Rotate(yRot * -2.0f, .0f, 1.0f, .0f);
-    modelViewMatrix.Translate(.8f, .0f, .0f);
-    
-    //绑定纹理
-    glBindTexture(GL_TEXTURE_2D, uiTextures[2]);
-    
-    //绘制光源
-    /** 绘制光源,修改着色器管理器 参数
-     1.GLT_SHADER_TEXTURE_POINT_LIGHT_DIFF
-     2.模型视图矩阵
-     3.投影矩阵
-     4.视点坐标系中的光源位置
-     5.基本漫反射d颜色
-     6.颜色(使用纹理则为0)
-     */
-    shaderManager.UseStockShader(GLT_SHADER_TEXTURE_POINT_LIGHT_DIFF, modelViewMatrix.GetMatrix(), transformPipelint.GetProjectionMatrix(), vLightTransformed, vWhite, 0);
-    sphereBatch.Draw();
-    
-    
-}
+//void DrawSongAndDance(GLfloat yRot)
+//{
+//    static GLfloat vWhite[] = {1.0f, 1.0f, 1.0f, 1.0f};
+//    static GLfloat vLightPos[] = {.0f, 3.0f, .0f, 1.0f};
+//
+//    //添加光源 光源位置的全局坐标存储在vLightPos变量中，其中包含了光源位置x坐标、y坐标、z坐标和w坐标。我们必须保留w坐标为1.0。因为无法用一个3分量去乘以4*4矩阵
+//    M3DVector4f vLightTransformed;
+//
+//    //相机矩阵
+//    M3DMatrix44f mCamera;
+//    //从modelViewMatrix 获取矩阵堆栈顶部的值
+//    modelViewMatrix.GetMatrix(mCamera);
+//    //将相机矩阵mCamera与光源矩阵vLightPos相乘获得vLightTransformed矩阵
+//    m3dTransformVector4(vLightTransformed, vLightPos, mCamera);
+//
+//    //结果压栈
+//    modelViewMatrix.PushMatrix();
+//    //仿射变换, 平移
+//    modelViewMatrix.Translatev(vLightPos);
+//
+//    /** 绘制(平面着色器) 参数
+//     1.GLT_SHADER_FLAT
+//     2.模型视图投影矩阵
+//     3.颜色数组
+//     */
+//    shaderManager.UseStockShader(GLT_SHADER_FLAT, transformPipelint.GetModelViewProjectionMatrix(), vWhite);
+//    sphereBatch.Draw();
+//
+//    //恢复矩阵
+//    modelViewMatrix.PopMatrix();
+//
+//    //绘制悬浮球体 绑定纹理
+//    glBindTexture(GL_TEXTURE_2D, uiTextures[2]);
+//
+//    //绘制50个蓝色悬浮球体,绘制一个压栈一个,绘制完成出栈一个
+//    for (int i = 0; i < NUM_SPHERE; i++) {
+//        modelViewMatrix.PushMatrix();
+//        modelViewMatrix.MultMatrix(sphere[i]);
+//
+//        /** 绘制光源,修改着色器管理器 参数
+//         1.GLT_SHADER_TEXTURE_POINT_LIGHT_DIFF
+//         2.模型视图矩阵
+//         3.投影矩阵
+//         4.视点坐标系中的光源位置
+//         5.基本漫反射颜色
+//         6.颜色(使用纹理则不用颜色)
+//         */
+//        shaderManager.UseStockShader(GLT_SHADER_TEXTURE_POINT_LIGHT_DIFF,
+//                                     modelViewMatrix.GetMatrix(),
+//                                     transformPipelint.GetProjectionMatrix(),
+//                                     vLightTransformed,
+//                                     vWhite,
+//                                     0);
+//        sphereBatch.Draw();
+//
+//        modelViewMatrix.PopMatrix();
+//    }
+//
+//    //绘制旋转甜甜圈
+//    //modelViewMatrix 顶部矩阵沿着z轴移动2.5单位
+//    modelViewMatrix.Translate(.0f, .2f, -2.5f);
+//
+//    //保存平移 (公转自转)
+//    modelViewMatrix.PushMatrix();
+//
+//    //顶部矩阵旋转
+//    modelViewMatrix.Rotate(yRot, .0f, 1.0f, .0f);
+//
+//    //绑定纹理
+//    glBindTexture(GL_TEXTURE_2D, uiTextures[1]);
+//    /** 绘制光源,修改着色器管理器 参数
+//     1.GLT_SHADER_TEXTURE_POINT_LIGHT_DIFF
+//     2.模型视图矩阵
+//     3.投影矩阵
+//     4.视点坐标系中的光源位置
+//     5.基本漫反射d颜色
+//     6.颜色(使用纹理则为0)
+//     */
+//    shaderManager.UseStockShader(GLT_SHADER_TEXTURE_POINT_LIGHT_DIFF, modelViewMatrix.GetMatrix(), transformPipelint.GetProjectionMatrix(), vLightTransformed, vWhite, 0);
+//
+//    //绘制
+//    torusBatch.Draw();
+//
+//    //恢复矩阵
+//    modelViewMatrix.PopMatrix();
+//
+//    //绘制公转球体
+//    modelViewMatrix.Rotate(yRot * -2.0f, .0f, 1.0f, .0f);
+//    modelViewMatrix.Translate(.8f, .0f, .0f);
+//
+//    //绑定纹理
+//    glBindTexture(GL_TEXTURE_2D, uiTextures[2]);
+//
+//    //绘制光源
+//    /** 绘制光源,修改着色器管理器 参数
+//     1.GLT_SHADER_TEXTURE_POINT_LIGHT_DIFF
+//     2.模型视图矩阵
+//     3.投影矩阵
+//     4.视点坐标系中的光源位置
+//     5.基本漫反射d颜色
+//     6.颜色(使用纹理则为0)
+//     */
+//    shaderManager.UseStockShader(GLT_SHADER_TEXTURE_POINT_LIGHT_DIFF, modelViewMatrix.GetMatrix(), transformPipelint.GetProjectionMatrix(), vLightTransformed, vWhite, 0);
+//    sphereBatch.Draw();
+//
+//
+//}
 
 
 // 召唤场景
 void RenderScene(void)
 {
     
-    static GLfloat vFloorColor[] = { 0.0f, 1.0f, 0.0f, .75f };
-    
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
-    //建立一个基于世界变化的动画
-    static CStopWatch rotTime;
-    
-    //当前时间 * 60s
-    float yRot = rotTime.GetElapsedSeconds() * 60.0f;
-    
+    glClear(GL_COLOR_BUFFER_BIT);
     //将当前的模型视图矩阵压入矩阵堆栈（单位矩阵）
     /*因为我们先绘制地面，而地面是不需要有任何变换的。所以在开始渲染时保证矩阵状态，
      然后在结束时使用相应的PopMatrix恢复它。这样就不必在每一次渲染时重载单位矩阵了。
      */
     modelViewMatrix.PushMatrix();
     
-    //设置观察者矩阵
-    M3DMatrix44f mCamera;
-    //从camraFrame中获取一个4*4的矩阵；
-    cameraFrame.GetCameraMatrix(mCamera);
-    //将照相机矩阵压入模型视图堆栈中
-    modelViewMatrix.MultMatrix(mCamera);
+    modelViewMatrix.Translate(.0f, .0f, viewZ);
     
-    //压栈
-    modelViewMatrix.PushMatrix();
-    
-    //添加反光效果
-    modelViewMatrix.Scale(1.0f, -1.0f, 1.0f);//翻转y轴
-    modelViewMatrix.Translate(.0f, .8f, .0f);//缩小
-    
-    /** 定义前向和背向的多边形
-     GL_CCW:表示传入的mode会选择逆时针为前向
-     GL_CW:表示顺时针为前向
+    /** 纹理替换矩阵着色器
+     1.GLT_SHADER_TEXTURE_REPLACE
+     2.模型视图k矩阵 & 投影矩阵
+     3.纹理层次
      */
-    glFrontFace(GL_CW);
-    //绘制地面意外其他部分
-    DrawSongAndDance(yRot);
-    glFrontFace(GL_CCW);
-    //绘制完毕,恢复矩阵
-    modelViewMatrix.PopMatrix();
+    shaderManager.UseStockShader(GLT_SHADER_TEXTURE_REPLACE, transformPipelint.GetModelViewProjectionMatrix(), 0);
     
-    //开启混合功能
-    glEnable(GL_BLEND);
-    
-    //绑定地面纹理
-    glBindTexture(GL_TEXTURE_2D, uiTextures[0]);
-    
-    /** 颜色混合方程式
-     1.目标颜色
-     2.源颜色
-     */
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    
-    /** 纹理调整着色器(将一个基本色乘以一个取自纹理的单元 的纹理)
-     1.GLT_SHADER_TEXTURE_MODULATE
-     2.模型视图矩阵
-     3.颜色
-     4.纹理单元(第0层的纹理单元)
-     */
-    shaderManager.UseStockShader(GLT_SHADER_TEXTURE_MODULATE, transformPipelint.GetModelViewProjectionMatrix(), vFloorColor, 0);
-    
+    //底板
+    glBindTexture(GL_TEXTURE_2D, textures[TEXTURE_FLOOR]);
     floorBatch.Draw();
     
-    //取消混合
-    glDisable(GL_BLEND);
+    //天花板
+    glBindTexture(GL_TEXTURE_2D, textures[TEXTURE_CEILING]);
+    ceilingBatch.Draw();
     
-    //绘制地面以外的其他部分
-    DrawSongAndDance(yRot);
+    //左右墙壁
+    glBindTexture(GL_TEXTURE_2D, textures[TEXTURE_BRICK]);
+    leftWallBatch.Draw();
+    rightWallBatch.Draw();
     
     //绘制完,恢复矩阵
     modelViewMatrix.PopMatrix();
@@ -390,26 +521,17 @@ void RenderScene(void)
 //特殊键位处理（上、下、左、右移动）
 void SpecialKeys(int key, int x, int y)
 {
-    float linar = .1f;
-    float angular = float(m3dDegToRad(5.0f));
     
     if (key == GLUT_KEY_UP) {
-        cameraFrame.MoveForward(linar);
+        //移动的是深度值
+        viewZ += .5f;
     }
     
     if (key == GLUT_KEY_DOWN) {
-        cameraFrame.MoveForward(-linar);
+        viewZ -= .5f;
     }
     
-    if (key == GLUT_KEY_RIGHT) {
-        cameraFrame.RotateWorld(-angular, .0f, 1.0f, .0f);
-    }
-    
-    if (key == GLUT_KEY_LEFT) {
-        cameraFrame.RotateWorld(angular, .0f, 1.0f, .0f);
-    }
-    
-
+    glutPostRedisplay();
 }
 
 
@@ -440,7 +562,7 @@ void ChangeSize(int w, int h)
     glViewport(0, 0, w, h);
     
     //透视投影
-    viewFrustum.SetPerspective(35.0f, float(w)/float(h), 1.0f, 100.0f);
+    viewFrustum.SetPerspective(80.0f, float(w)/float(h), 1.0f, 120.0f);
     
     //获取投影矩阵到
     projectionMatrix.LoadMatrix(viewFrustum.GetProjectionMatrix());
@@ -448,7 +570,7 @@ void ChangeSize(int w, int h)
     //变换管道中来使用
     transformPipelint.SetMatrixStacks(modelViewMatrix, projectionMatrix);
     
-    modelViewMatrix.LoadIdentity();
+//    modelViewMatrix.LoadIdentity();
 }
 
 
@@ -466,7 +588,7 @@ int main(int argc, char* argv[])
     glutInitWindowSize(800, 600);
     
     //创建window的名称
-    glutCreateWindow("Open GL SphereWorld");
+    glutCreateWindow("Tunnel 隧道");
     
     //注册回调函数（改变尺寸）
     glutReshapeFunc(ChangeSize);
@@ -480,10 +602,22 @@ int main(int argc, char* argv[])
     
     //注册鼠标点击事件：
     //glutMouseFunc(MouseKey);
-    
-    
     //显示函数
     glutDisplayFunc(RenderScene);
+    
+    //添加菜单入口
+    glutCreateMenu(ProcessMenu);
+    glutAddMenuEntry("GL_NEAREST", 0);
+    glutAddMenuEntry("GL_LINEAR", 1);
+    glutAddMenuEntry("GL_NEAREST_MIPMAP_NEAREST", 2);
+    glutAddMenuEntry("GL_NEAREST_MIPMAP_LINEAR", 3);
+    glutAddMenuEntry("GL_LINEAR_MIPMAP_NEAREST", 4);
+    glutAddMenuEntry("GL_LINEAR_MIPMAP_LINEAR", 5);
+    glutAddMenuEntry("Anisotropic Filter", 6);
+    glutAddMenuEntry("Anisotropic Off", 7);
+    
+    glutAttachMenu(GLUT_RIGHT_BUTTON);
+    
     
     //判断一下是否能初始化glew库，确保项目能正常使用OpenGL 框架
     GLenum err = glewInit();
